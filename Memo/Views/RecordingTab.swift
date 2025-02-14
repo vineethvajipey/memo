@@ -17,6 +17,7 @@ struct RecordingTab: View {
                         TextField("Recording title", text: $title)
                             .textFieldStyle(.roundedBorder)
                             .padding(.horizontal)
+                            .font(AppTheme.bodyFont)
                             .foregroundColor(AppTheme.textColor)
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
@@ -96,13 +97,13 @@ struct RecordingTab: View {
                             HStack(spacing: 20) {
                                 Button(action: discardRecording) {
                                     Text("New Recording")
-                                        .font(AppTheme.bodyFont)
+                                        .font(AppTheme.buttonFont)
                                 }
                                 .buttonStyle(SecondaryButtonStyle())
                                 
                                 Button(action: saveRecording) {
                                     Text("Save")
-                                        .font(AppTheme.bodyFont)
+                                        .font(AppTheme.buttonFont)
                                 }
                                 .buttonStyle(PrimaryButtonStyle())
                             }
@@ -113,8 +114,7 @@ struct RecordingTab: View {
                 }
                 .padding()
             }
-            .navigationTitle("Record")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Voice Recorder")
             .toolbarBackground(AppTheme.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)

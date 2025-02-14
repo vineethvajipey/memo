@@ -9,7 +9,6 @@ struct MemoDetailView: View {
     @State private var isPlaying = false
     @State private var currentTime: TimeInterval = 0
     @State private var timer: Timer?
-    @State private var isEditingTranscript = false
     @State private var editedTranscript: String = ""
     @State private var editedTitle: String = ""
     
@@ -40,70 +39,53 @@ struct MemoDetailView: View {
             }
             .frame(maxWidth: .infinity)
             
-            // Content section
-            if isEditingTranscript {
-                TextField("Title", text: $editedTitle)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.horizontal)
-                    .onChange(of: editedTitle) { _ in
-                        autoSave()
-                    }
-                
-                TextEditor(text: $editedTranscript)
-                    .padding(8)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-                    .frame(maxHeight: .infinity)
-                    .onChange(of: editedTranscript) { _ in
-                        autoSave()
-                    }
-            } else {
-                Text(memo.transcript)
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-            }
+            // Title and Transcript section
+            TextField("Title", text: $editedTitle)
+                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal)
+                .font(AppTheme.bodyFont)
+                .onChange(of: editedTitle) { _ in
+                    autoSave()
+                }
+            
+            TextEditor(text: $editedTranscript)
+                .scrollContentBackground(.hidden)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
+                .frame(maxHeight: .infinity)
+                .font(AppTheme.bodyFont)
+                .onChange(of: editedTranscript) { _ in
+                    autoSave()
+                }
         }
         .padding()
-        .navigationTitle(isEditingTranscript ? "Edit Memo" : memo.title)
+        .navigationTitle("Memo")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(isEditingTranscript ? "Done" : "Edit") {
-                    withAnimation {
-                        isEditingTranscript.toggle()
-                        if !isEditingTranscript {
-                            // Final save when exiting edit mode
-                            autoSave()
-                        }
-                    }
-                }
-                .foregroundColor(AppTheme.primaryRed)
-            }
-        }
         .onAppear {
             setupAudioPlayer()
             editedTranscript = memo.transcript
             editedTitle = memo.title
         }
         .onDisappear {
-            audioPlayer?.stop()
-            timer?.invalidate()
+            cleanup()
         }
     }
     
     private func autoSave() {
-        // Add debounce if needed
         memoStore.updateMemo(memo, title: editedTitle, transcript: editedTranscript)
     }
     
     private func setupAudioPlayer() {
         do {
+            // Configure audio session for playback
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+            
+            // Create and prepare audio player
             audioPlayer = try AVAudioPlayer(contentsOf: memo.audioURL)
             audioPlayer?.prepareToPlay()
         } catch {
-            print("Error loading audio: \(error)")
+            print("Error setting up audio playback: \(error)")
         }
     }
     
@@ -112,16 +94,32 @@ struct MemoDetailView: View {
             audioPlayer?.pause()
             timer?.invalidate()
         } else {
-            audioPlayer?.play()
-            timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-                currentTime = audioPlayer?.currentTime ?? 0
-                if audioPlayer?.currentTime == audioPlayer?.duration {
-                    isPlaying = false
-                    timer?.invalidate()
+            do {
+                // Ensure audio session is active
+                try AVAudioSession.sharedInstance().setActive(true)
+                audioPlayer?.play()
+                timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+                    currentTime = audioPlayer?.currentTime ?? 0
+                    if audioPlayer?.currentTime == audioPlayer?.duration {
+                        isPlaying = false
+                        timer?.invalidate()
+                    }
                 }
+            } catch {
+                print("Error during playback: \(error)")
             }
         }
         isPlaying.toggle()
+    }
+    
+    private func cleanup() {
+        audioPlayer?.stop()
+        timer?.invalidate()
+        do {
+            try AVAudioSession.sharedInstance().setActive(false)
+        } catch {
+            print("Error cleaning up audio session: \(error)")
+        }
     }
     
     private func formatTime(_ time: TimeInterval) -> String {

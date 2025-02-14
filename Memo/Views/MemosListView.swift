@@ -23,7 +23,11 @@ struct MemosListView: View {
                     }
                 }
             }
-            .navigationTitle("Saved Memos")
+            .navigationTitle("Memos")
+            .toolbarBackground(AppTheme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .foregroundColor(AppTheme.textColor)
         }
     }
 }
