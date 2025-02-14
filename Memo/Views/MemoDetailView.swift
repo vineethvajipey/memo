@@ -4,6 +4,7 @@ import AVKit
 struct MemoDetailView: View {
     let memo: VoiceMemo
     @ObservedObject var memoStore: VoiceMemoStore
+    @Environment(\.dismiss) private var dismiss
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isPlaying = false
     @State private var currentTime: TimeInterval = 0
@@ -14,24 +15,7 @@ struct MemoDetailView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            if isEditingTranscript {
-                TextField("Title", text: $editedTitle)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.horizontal)
-                
-                TextEditor(text: $editedTranscript)
-                    .padding(8)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-                    .frame(maxHeight: 200)
-            } else {
-                Text(memo.transcript)
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-            }
-            
+            // Audio player section
             VStack(spacing: 8) {
                 Slider(value: $currentTime, in: 0...(audioPlayer?.duration ?? 0)) { editing in
                     if !editing {
@@ -44,41 +28,58 @@ struct MemoDetailView: View {
                     Spacer()
                     Text(formatTime(audioPlayer?.duration ?? 0))
                 }
-                .font(.caption)
+                .font(AppTheme.captionFont)
+                .foregroundColor(AppTheme.secondaryText)
             }
-            .padding()
+            .padding(.horizontal)
             
             Button(action: togglePlayback) {
                 Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                     .font(.system(size: 44))
+                    .foregroundColor(AppTheme.primaryRed)
             }
             .frame(maxWidth: .infinity)
             
+            // Content section
             if isEditingTranscript {
-                HStack {
-                    Button("Cancel") {
-                        cancelEdit()
+                TextField("Title", text: $editedTitle)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal)
+                    .onChange(of: editedTitle) { _ in
+                        autoSave()
                     }
-                    .buttonStyle(.bordered)
-                    
-                    Spacer()
-                    
-                    Button("Save") {
-                        saveEdit()
+                
+                TextEditor(text: $editedTranscript)
+                    .padding(8)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(8)
+                    .frame(maxHeight: .infinity)
+                    .onChange(of: editedTranscript) { _ in
+                        autoSave()
                     }
-                    .buttonStyle(.borderedProminent)
-                }
-                .padding()
+            } else {
+                Text(memo.transcript)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(8)
             }
         }
         .padding()
-        .navigationTitle(memo.title)
+        .navigationTitle(isEditingTranscript ? "Edit Memo" : memo.title)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(isEditingTranscript ? "" : "Edit") {
-                    startEdit()
+                Button(isEditingTranscript ? "Done" : "Edit") {
+                    withAnimation {
+                        isEditingTranscript.toggle()
+                        if !isEditingTranscript {
+                            // Final save when exiting edit mode
+                            autoSave()
+                        }
+                    }
                 }
-                .opacity(isEditingTranscript ? 0 : 1)
+                .foregroundColor(AppTheme.primaryRed)
             }
         }
         .onAppear {
@@ -92,25 +93,9 @@ struct MemoDetailView: View {
         }
     }
     
-    private func startEdit() {
-        withAnimation {
-            isEditingTranscript = true
-        }
-    }
-    
-    private func cancelEdit() {
-        withAnimation {
-            isEditingTranscript = false
-            editedTranscript = memo.transcript
-            editedTitle = memo.title
-        }
-    }
-    
-    private func saveEdit() {
+    private func autoSave() {
+        // Add debounce if needed
         memoStore.updateMemo(memo, title: editedTitle, transcript: editedTranscript)
-        withAnimation {
-            isEditingTranscript = false
-        }
     }
     
     private func setupAudioPlayer() {

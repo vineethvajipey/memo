@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct MemoApp: App {
+    init() {
+        AppTheme.applyTheme()
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

@@ -9,84 +9,116 @@ struct RecordingTab: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                if !isRecording && !savedTranscript.isEmpty {
-                    // Show title input after recording
-                    TextField("Recording title", text: $title)
-                        .textFieldStyle(.roundedBorder)
-                        .padding(.horizontal)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
+            ZStack {
+                AppTheme.background.ignoresSafeArea()
                 
-                // Transcription area
-                ScrollView {
-                    Text(isRecording ? speechRecognizer.transcript : 
-                         (savedTranscript.isEmpty ? "Tap record to start" : savedTranscript))
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .foregroundColor(isRecording || !savedTranscript.isEmpty ? .primary : .gray)
-                }
-                .animation(.default, value: speechRecognizer.transcript)
-                
-                Spacer()
-                
-                // Audio level visualization
-                if isRecording {
-                    AudioVisualizerView(
-                        levels: speechRecognizer.audioLevels,
-                        active: isRecording
-                    )
-                    .frame(height: 60)
-                    .padding()
-                }
-                
-                // Bottom controls
-                VStack(spacing: 16) {
-                    // Record/Stop button
-                    Button(action: {
-                        if isRecording {
-                            stopRecording()
-                        } else if savedTranscript.isEmpty {
-                            startRecording()
-                        }
-                    }) {
-                        Circle()
-                            .fill(isRecording ? Color.red : Color.red.opacity(0.8))
-                            .frame(width: 80, height: 80)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.red.opacity(0.2), lineWidth: 2)
-                                    .scaleEffect(isRecording ? 1.2 : 1.0)
-                                    .opacity(isRecording ? 0.5 : 1)
-                            )
-                            .overlay(
-                                Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(.white)
-                            )
+                VStack(spacing: 20) {
+                    if !isRecording && !savedTranscript.isEmpty {
+                        TextField("Recording title", text: $title)
+                            .textFieldStyle(.roundedBorder)
+                            .padding(.horizontal)
+                            .foregroundColor(AppTheme.textColor)
+                            .transition(.move(edge: .top).combined(with: .opacity))
                     }
                     
-                    // Save and New Recording buttons
-                    if !isRecording && !savedTranscript.isEmpty {
-                        HStack(spacing: 20) {
-                            Button(action: discardRecording) {
-                                Text("New Recording")
-                                    .foregroundColor(.red)
+                    if isRecording {
+                        Spacer()
+                        
+                        // Live transcription
+                        ScrollViewReader { proxy in
+                            ScrollView {
+                                Text(speechRecognizer.transcript)
+                                    .font(AppTheme.bodyFont)
+                                    .padding()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .foregroundColor(AppTheme.textColor)
+                                    .id("transcript") // For auto-scrolling
                             }
-                            .buttonStyle(.bordered)
-                            
-                            Button(action: saveRecording) {
-                                Text("Save")
+                            .frame(maxHeight: 100)
+                            .onChange(of: speechRecognizer.transcript) { _ in
+                                withAnimation {
+                                    proxy.scrollTo("transcript", anchor: .bottom)
+                                }
                             }
-                            .buttonStyle(.borderedProminent)
                         }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        
+                        // Audio visualization
+                        AudioVisualizerView(
+                            levels: speechRecognizer.audioLevels,
+                            active: isRecording
+                        )
+                        .frame(height: 120)
+                        .padding(.horizontal)
+                        
+                        Spacer()
+                    } else {
+                        // Saved transcript view
+                        ScrollView {
+                            Text(savedTranscript.isEmpty ? "Tap record to start" : savedTranscript)
+                                .font(AppTheme.bodyFont)
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .foregroundColor(savedTranscript.isEmpty ? AppTheme.secondaryText : AppTheme.textColor)
+                        }
+                        .animation(.default, value: speechRecognizer.transcript)
                     }
+                    
+                    Spacer()
+                    
+                    // Bottom controls
+                    VStack(spacing: 16) {
+                        // Record/Stop button
+                        Button(action: {
+                            if isRecording {
+                                stopRecording()
+                            } else if savedTranscript.isEmpty {
+                                startRecording()
+                            }
+                        }) {
+                            Circle()
+                                .fill(isRecording ? AppTheme.primaryRed : AppTheme.darkRed)
+                                .frame(width: 80, height: 80)
+                                .overlay(
+                                    Circle()
+                                        .stroke(AppTheme.primaryRed.opacity(0.2), lineWidth: 2)
+                                        .scaleEffect(isRecording ? 1.2 : 1.0)
+                                        .opacity(isRecording ? 0.5 : 1)
+                                )
+                                .overlay(
+                                    Image(systemName: isRecording ? "stop.fill" : "mic.fill")
+                                        .font(.system(size: 32))
+                                        .foregroundColor(.white)
+                                )
+                        }
+                        
+                        // Save and New Recording buttons
+                        if !isRecording && !savedTranscript.isEmpty {
+                            HStack(spacing: 20) {
+                                Button(action: discardRecording) {
+                                    Text("New Recording")
+                                        .font(AppTheme.bodyFont)
+                                }
+                                .buttonStyle(SecondaryButtonStyle())
+                                
+                                Button(action: saveRecording) {
+                                    Text("Save")
+                                        .font(AppTheme.bodyFont)
+                                }
+                                .buttonStyle(PrimaryButtonStyle())
+                            }
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+                    }
+                    .padding(.bottom, 40)
                 }
-                .padding(.bottom, 40)
+                .padding()
             }
-            .padding()
             .navigationTitle("Record")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppTheme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .foregroundColor(AppTheme.textColor)
             .animation(.default, value: isRecording)
             .animation(.default, value: savedTranscript)
         }
