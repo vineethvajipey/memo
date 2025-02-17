@@ -44,22 +44,22 @@ struct MemoDetailView: View {
                 .textFieldStyle(.roundedBorder)
                 .padding(.horizontal)
                 .font(AppTheme.bodyFont)
-                .onChange(of: editedTitle) { _ in
+                .onChange(of: editedTitle) { oldValue, newValue in
                     autoSave()
                 }
             
             TextEditor(text: $editedTranscript)
                 .scrollContentBackground(.hidden)
-                .background(Color.gray.opacity(0.1))
+                .background(AppTheme.background)
                 .cornerRadius(8)
                 .frame(maxHeight: .infinity)
                 .font(AppTheme.bodyFont)
-                .onChange(of: editedTranscript) { _ in
+                .onChange(of: editedTranscript) { oldValue, newValue in
                     autoSave()
                 }
         }
         .padding()
-        .navigationTitle("Memo")
+        .navigationTitle(editedTitle)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             setupAudioPlayer()

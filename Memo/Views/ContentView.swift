@@ -4,19 +4,22 @@ struct ContentView: View {
     @StateObject private var memoStore = VoiceMemoStore()
     @StateObject private var themeManager = ThemeManager.shared
     @State private var showingSettings = false
+    @State private var selectedTab = 1
     
     var body: some View {
         NavigationView {
-            TabView {
+            TabView(selection: $selectedTab) {
                 RecordingTab(memoStore: memoStore)
                     .tabItem {
                         Label("Record", systemImage: "record.circle")
                     }
+                    .tag(0)
                 
                 MemosListView(memoStore: memoStore)
                     .tabItem {
                         Label("Memos", systemImage: "list.bullet")
                     }
+                    .tag(1)
             }
             .tint(AppTheme.primaryRed)
             .toolbar {

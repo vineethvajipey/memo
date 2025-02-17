@@ -36,7 +36,7 @@ struct RecordingTab: View {
                                     .id("transcript") // For auto-scrolling
                             }
                             .frame(maxHeight: 100)
-                            .onChange(of: speechRecognizer.transcript) { _ in
+                            .onChange(of: speechRecognizer.transcript) { oldValue, newValue in
                                 withAnimation {
                                     proxy.scrollTo("transcript", anchor: .bottom)
                                 }
@@ -114,7 +114,7 @@ struct RecordingTab: View {
                 }
                 .padding()
             }
-            .navigationTitle("Voice Recorder")
+            .navigationTitle("RECORD")
             .toolbarBackground(AppTheme.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -138,14 +138,22 @@ struct RecordingTab: View {
             isRecording = false
             speechRecognizer.stopTranscribing()
             savedTranscript = speechRecognizer.transcript
-            title = "Recording \(Date().formatted(date: .abbreviated, time: .shortened))"
+            
+            // Updated date formatting
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "MM:HH:dd:MM:yyyy"
+            title = "Recording \(dateFormatter.string(from: Date()))"
         }
     }
     
     private func saveRecording() {
         Task {
             if let audioURL = await speechRecognizer.getRecordingURL() {
-                let defaultTitle = "Voice Memo \(Date().formatted(date: .abbreviated, time: .shortened))"
+                // Updated date formatting for default title
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "MM:HH:dd:MM:yyyy"
+                let defaultTitle = "Voice Memo \(dateFormatter.string(from: Date()))"
+                
                 memoStore.addMemo(
                     title: title.isEmpty ? defaultTitle : title,
                     transcript: savedTranscript,

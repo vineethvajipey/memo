@@ -23,7 +23,7 @@ struct MemosListView: View {
                     }
                 }
             }
-            .navigationTitle("Memos")
+            .navigationTitle("MEMOS")
             .toolbarBackground(AppTheme.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
