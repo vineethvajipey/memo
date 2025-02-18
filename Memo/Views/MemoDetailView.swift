@@ -2,8 +2,8 @@ import SwiftUI
 import AVKit
 
 struct MemoDetailView: View {
-    let memo: VoiceMemo
-    @ObservedObject var memoStore: VoiceMemoStore
+    let memo: DailyMemo
+    @ObservedObject var memoStore: DailyMemoStore
     @Environment(\.dismiss) private var dismiss
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isPlaying = false
@@ -11,33 +11,68 @@ struct MemoDetailView: View {
     @State private var timer: Timer?
     @State private var editedTranscript: String = ""
     @State private var editedTitle: String = ""
+    @State private var selectedMood: DailyMemo.Mood
+    @State private var hasAudio: Bool = false
+    
+    init(memo: DailyMemo, memoStore: DailyMemoStore) {
+        self.memo = memo
+        self.memoStore = memoStore
+        _selectedMood = State(initialValue: memo.mood)
+        _editedTitle = State(initialValue: memo.title)
+        _editedTranscript = State(initialValue: memo.transcript)
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Audio player section
-            VStack(spacing: 8) {
-                Slider(value: $currentTime, in: 0...(audioPlayer?.duration ?? 0)) { editing in
-                    if !editing {
-                        audioPlayer?.currentTime = currentTime
+            // Only show audio player if there's valid audio
+            if hasAudio {
+                // Audio player section
+                VStack(spacing: 8) {
+                    Slider(value: $currentTime, in: 0...(audioPlayer?.duration ?? 0)) { editing in
+                        if !editing {
+                            audioPlayer?.currentTime = currentTime
+                        }
                     }
+                    
+                    HStack {
+                        Text(formatTime(currentTime))
+                        Spacer()
+                        Text(formatTime(audioPlayer?.duration ?? 0))
+                    }
+                    .font(AppTheme.captionFont)
+                    .foregroundColor(AppTheme.secondaryText)
                 }
+                .padding(.horizontal)
                 
-                HStack {
-                    Text(formatTime(currentTime))
-                    Spacer()
-                    Text(formatTime(audioPlayer?.duration ?? 0))
+                Button(action: togglePlayback) {
+                    Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(AppTheme.primaryRed)
                 }
-                .font(AppTheme.captionFont)
-                .foregroundColor(AppTheme.secondaryText)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal)
             
-            Button(action: togglePlayback) {
-                Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundColor(AppTheme.primaryRed)
+            // Mood selector
+            HStack {
+                Text("Mood:")
+                    .font(AppTheme.bodyFont)
+                
+                ForEach(DailyMemo.Mood.allCases, id: \.self) { mood in
+                    Button(action: {
+                        selectedMood = mood
+                        autoSave()
+                    }) {
+                        VStack {
+                            Image(systemName: mood.icon)
+                                .foregroundColor(mood == selectedMood ? mood.color : .gray)
+                            Text(mood.rawValue)
+                                .font(AppTheme.captionFont)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                }
             }
-            .frame(maxWidth: .infinity)
+            .padding(.vertical)
             
             // Title and Transcript section
             TextField("Title", text: $editedTitle)
@@ -62,17 +97,29 @@ struct MemoDetailView: View {
         .navigationTitle(editedTitle)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            setupAudioPlayer()
-            editedTranscript = memo.transcript
-            editedTitle = memo.title
+            checkForAudio()
         }
         .onDisappear {
             cleanup()
         }
     }
     
+    private func checkForAudio() {
+        // Check if the audio file exists and is not empty
+        if let fileSize = try? FileManager.default.attributesOfItem(atPath: memo.audioURL.path)[.size] as? Int64,
+           fileSize > 0 {
+            setupAudioPlayer()
+            hasAudio = true
+        } else {
+            hasAudio = false
+        }
+    }
+    
     private func autoSave() {
-        memoStore.updateMemo(memo, title: editedTitle, transcript: editedTranscript)
+        memoStore.updateMemo(memo, 
+                           title: editedTitle, 
+                           transcript: editedTranscript,
+                           mood: selectedMood)
     }
     
     private func setupAudioPlayer() {

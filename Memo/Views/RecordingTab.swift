@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RecordingTab: View {
     @StateObject private var speechRecognizer = SpeechRecognizer()
-    @ObservedObject var memoStore: VoiceMemoStore
+    @ObservedObject var memoStore: DailyMemoStore
     @State private var isRecording = false
     @State private var title = ""
     @State private var savedTranscript = ""
@@ -157,7 +157,8 @@ struct RecordingTab: View {
                 memoStore.addMemo(
                     title: title.isEmpty ? defaultTitle : title,
                     transcript: savedTranscript,
-                    audioURL: audioURL
+                    audioURL: audioURL,
+                    mood: .okay  // Add default mood
                 )
                 resetView()
             }
@@ -178,5 +179,5 @@ struct RecordingTab: View {
 }
 
 #Preview {
-    RecordingTab(memoStore: VoiceMemoStore())
+    RecordingTab(memoStore: DailyMemoStore())
 } 

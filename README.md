@@ -1,6 +1,7 @@
 Vineeth Vajipey
 
-Memo Voice Notes App
+micro diary
 
-features
-- transcription
+track your life with daily mini memos
+add text or voice recordings
+

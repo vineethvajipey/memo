@@ -1,25 +1,32 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var memoStore = VoiceMemoStore()
+    @StateObject private var memoStore = DailyMemoStore()
     @StateObject private var themeManager = ThemeManager.shared
     @State private var showingSettings = false
     @State private var selectedTab = 1
+    @State private var selectedDate: Date?
     
     var body: some View {
         NavigationView {
             TabView(selection: $selectedTab) {
-                RecordingTab(memoStore: memoStore)
+                AddMemoView(memoStore: memoStore, selectedTab: $selectedTab, date: Date())
                     .tabItem {
-                        Label("Record", systemImage: "record.circle")
+                        Label("New", systemImage: "plus.circle.fill")
                     }
                     .tag(0)
                 
-                MemosListView(memoStore: memoStore)
+                CalendarView(memoStore: memoStore, selectedDate: $selectedDate)
+                    .tabItem {
+                        Label("Calendar", systemImage: "calendar")
+                    }
+                    .tag(1)
+                
+                MemosListView(memoStore: memoStore, selectedDate: $selectedDate)
                     .tabItem {
                         Label("Memos", systemImage: "list.bullet")
                     }
-                    .tag(1)
+                    .tag(2)
             }
             .tint(AppTheme.primaryRed)
             .toolbar {
